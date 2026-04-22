@@ -2,21 +2,35 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
+const OpenAI = require('openai');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const MODEL = 'claude-haiku-4-5-20251001';
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
-const client = hasApiKey
-  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  : null;
+// Auto-detect provider: OpenAI takes priority if both are set.
+const hasOpenAI = !!process.env.OPENAI_API_KEY;
+const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
+
+const PROVIDER = process.env.AI_PROVIDER || (hasOpenAI ? 'openai' : hasAnthropic ? 'anthropic' : null);
+
+const MODELS = {
+  openai: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+  anthropic: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
+};
+
+const openaiClient = hasOpenAI ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const anthropicClient = hasAnthropic ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, aiEnabled: hasApiKey, model: MODEL });
+  res.json({
+    ok: true,
+    aiEnabled: !!PROVIDER,
+    provider: PROVIDER,
+    model: PROVIDER ? MODELS[PROVIDER] : null,
+  });
 });
 
 function buildSystemPrompt({ lesson, level, nativeLanguage }) {
@@ -53,11 +67,34 @@ Wrap any ${nativeLanguage} explanation in [[NATIVE]] ... [[/NATIVE]] tags so the
 - Output ONLY what you would say out loud (plus [[NATIVE]] tags when translating).${lessonBlock}`;
 }
 
+async function callOpenAI({ system, messages }) {
+  const resp = await openaiClient.chat.completions.create({
+    model: MODELS.openai,
+    max_tokens: 400,
+    temperature: 0.8,
+    messages: [{ role: 'system', content: system }, ...messages],
+  });
+  return resp.choices?.[0]?.message?.content || '';
+}
+
+async function callAnthropic({ system, messages }) {
+  const resp = await anthropicClient.messages.create({
+    model: MODELS.anthropic,
+    max_tokens: 400,
+    system,
+    messages,
+  });
+  return resp.content
+    .filter((b) => b.type === 'text')
+    .map((b) => b.text)
+    .join('');
+}
+
 app.post('/api/chat', async (req, res) => {
-  if (!client) {
+  if (!PROVIDER) {
     return res.status(503).json({
       error: 'no_api_key',
-      message: 'Server is missing ANTHROPIC_API_KEY. App is running in offline practice mode.',
+      message: 'Server has no API key configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env.',
     });
   }
 
@@ -67,33 +104,32 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: 'bad_request', message: 'messages required' });
   }
 
+  const system = buildSystemPrompt({ lesson, level, nativeLanguage });
+  const cleanMessages = messages.map((m) => ({
+    role: m.role === 'assistant' ? 'assistant' : 'user',
+    content: String(m.content || '').slice(0, 4000),
+  }));
+
   try {
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 400,
-      system: buildSystemPrompt({ lesson, level, nativeLanguage }),
-      messages: messages.map((m) => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: String(m.content || '').slice(0, 4000),
-      })),
-    });
+    const reply = PROVIDER === 'openai'
+      ? await callOpenAI({ system, messages: cleanMessages })
+      : await callAnthropic({ system, messages: cleanMessages });
 
-    const text = response.content
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text)
-      .join('');
-
-    res.json({ reply: text, usage: response.usage });
+    res.json({ reply, provider: PROVIDER, model: MODELS[PROVIDER] });
   } catch (err) {
-    console.error('Claude API error:', err?.message || err);
+    console.error(`${PROVIDER} API error:`, err?.message || err);
     res.status(502).json({
       error: 'upstream_error',
-      message: err?.message || 'Claude API call failed',
+      message: err?.message || `${PROVIDER} API call failed`,
     });
   }
 });
 
 app.listen(PORT, () => {
   console.log(`\nAI English Tutor running at http://localhost:${PORT}`);
-  console.log(`AI mode: ${hasApiKey ? 'ENABLED' : 'DISABLED (set ANTHROPIC_API_KEY in .env to enable)'}\n`);
+  if (PROVIDER) {
+    console.log(`AI mode: ENABLED (provider=${PROVIDER}, model=${MODELS[PROVIDER]})\n`);
+  } else {
+    console.log(`AI mode: DISABLED (set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env to enable)\n`);
+  }
 });
