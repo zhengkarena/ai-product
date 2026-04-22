@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emma · AI 英语外教</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Setup screen -->
+  <div id="setup-screen" class="screen">
+    <div class="setup-card">
+      <div class="brand">
+        <div class="brand-avatar">
+          <div class="avatar-face">
+            <div class="eye eye-l"></div>
+            <div class="eye eye-r"></div>
+            <div class="mouth"></div>
+          </div>
+        </div>
+        <h1>Hi, I'm Emma</h1>
+        <p class="tagline">你的 AI 美式英语外教 · Let's talk!</p>
+      </div>
+
+      <div class="setup-section">
+        <label class="field-label">选择版本 / Choose version</label>
+        <div class="level-picker">
+          <button class="level-btn active" data-level="adult">
+            <span class="level-emoji">🎓</span>
+            <span class="level-title">Adult 成人版</span>
+            <span class="level-desc">地道美式表达、俚语、生活场景</span>
+          </button>
+          <button class="level-btn" data-level="kid">
+            <span class="level-emoji">🧒</span>
+            <span class="level-title">Kid 儿童版</span>
+            <span class="level-desc">简单单词、鼓励式教学、趣味例句</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <label class="field-label">选择课程 / Pick a lesson</label>
+        <div id="lesson-grid" class="lesson-grid"></div>
+      </div>
+
+      <button id="start-btn" class="primary-btn">Start Class ▶</button>
+      <p id="status-line" class="status-line"></p>
+    </div>
+  </div>
+
+  <!-- Class screen -->
+  <div id="class-screen" class="screen hidden">
+    <header class="class-header">
+      <button id="back-btn" class="ghost-btn">← 切换课程</button>
+      <div class="header-title">
+        <span id="current-lesson-title">Lesson</span>
+        <span id="current-level-badge" class="badge"></span>
+      </div>
+      <div class="header-actions">
+        <button id="mute-btn" class="icon-btn" title="静音切换">🔊</button>
+      </div>
+    </header>
+
+    <main class="class-main">
+      <aside class="teacher-panel">
+        <div class="teacher-avatar" id="teacher-avatar">
+          <div class="avatar-ring"></div>
+          <div class="avatar-face big">
+            <div class="eye eye-l"></div>
+            <div class="eye eye-r"></div>
+            <div class="mouth" id="teacher-mouth"></div>
+          </div>
+          <div class="status-pill" id="teacher-status">Ready</div>
+        </div>
+
+        <div class="vocab-card">
+          <h3>📚 Key words</h3>
+          <div id="vocab-chips" class="chip-row"></div>
+          <h3 style="margin-top:16px;">💬 Useful phrases</h3>
+          <ul id="phrase-list" class="phrase-list"></ul>
+        </div>
+      </aside>
+
+      <section class="chat-panel">
+        <div id="messages" class="messages"></div>
+
+        <div class="input-bar">
+          <button id="mic-btn" class="mic-btn" title="按住或点击说话">
+            <span class="mic-icon">🎤</span>
+            <span id="mic-label">Tap to speak</span>
+          </button>
+          <div class="text-input-row">
+            <input
+              id="text-input"
+              type="text"
+              placeholder="Or type in English (or 中文 for translation help)..."
+              autocomplete="off"
+            />
+            <button id="send-btn" class="send-btn">Send</button>
+          </div>
+          <div class="tip-row">
+            <button id="translate-btn" class="tip-btn" title="请外教翻译上一句">🌐 Translate</button>
+            <button id="repeat-btn" class="tip-btn" title="让外教重复一遍">🔁 Repeat</button>
+            <button id="slower-btn" class="tip-btn" title="让外教说慢一点">🐢 Slower</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="lessons.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

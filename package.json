@@ -1,0 +1,18 @@
+{
+  "name": "ai-english-tutor",
+  "version": "0.1.0",
+  "description": "AI English tutor web app with voice conversation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
